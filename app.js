@@ -24,7 +24,7 @@ const authJwt = require("./middlewares/auth");
 app.use(cors(corsOption));
 app.use(express.json());
 app.use(morgan('tiny'));
-app.use(authJwt());
+app.use();
 app.use('/public/uploads', express.static(__dirname + '/public/uploads'))
 
 //Routers
