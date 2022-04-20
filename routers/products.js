@@ -40,7 +40,9 @@ router.get('/', async (req, res) => {
         if(req.query.categories) {
             filterProductsByCat = {category: req.query.categories.split(',')}
         }
-        const productList = await Product.find(filterProductsByCat).populate('category');
+        const productList = await Product.find(filterProductsByCat)
+            .populate('category')
+
 
         res.send(productList);
     } catch (err) {
@@ -95,6 +97,7 @@ router.post('/create-product',uploadOptions.single('image'), async (req, res) =>
             rating: req.body.rating,
             numReviews: req.body.numReviews,
             isFeatured: req.body.isFeatured,
+
         })
         if (!product) return res.status(400).json({
             success: false,
@@ -224,21 +227,33 @@ router.put('/gallery-images/:id', uploadOptions.array('images', 10), async (req,
                 imagesPaths.push(`${basePath}${file.filename}`)
             })
         }
-        const im = await Product.findByIdAndUpdate(
+        const images = await Product.findByIdAndUpdate(
             req.params.id,
             {
                 images: imagesPaths
             },
             {new: true}
         );
-        res.send(im);
+        res.send(images);
     } catch(err) {
         res.status(500).json({
             success: false,
             message: err
         })
     }
+})
 
+//Get featured products
+router.get('/get/featured/:count', async (req, res) => {
+    try {
+        const count = req.params.count ? req.params.count : 0;
+        const products = await Product.find({isFeatured: true}).limit(+count);
+        res.send(products)
+    } catch {
+        res.status(500).json({
+            success: false
+        })
+    }
 })
 
 

@@ -53,7 +53,12 @@ const productSchema = mongoose.Schema({
     dataCreated: {
         type: Date,
         default: Date.now
-    }
+    },
+
+    colors: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Color',
+    }]
 
 })
 

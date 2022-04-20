@@ -1,34 +1,31 @@
-const jsonwebtoken = require('jsonwebtoken');
+const expressJwt = require('express-jwt');
 
-//  const authToken = (user) => {
-//     return jsonwebtoken.sign(user, process.env.TOKEN_SECRET)
-// }
-
-const checkAuthHeader = ( req, res, next) => {
-    if(!req.headers.authorization) {
-        res.status(401);
-        res.json({
-            success: false,
-            message: "No token provided!"
-        });
-
-        return false;
-    }
-    try {
-        const token = req.headers.authorization.split(" ")[1];
-        jsonwebtoken.verify(token, process.env.TOKEN_SECRET)
-        next()
-    } catch(err) {
-        res.status(401);
-        res.json({
-            success: false,
-            message: "Invalid Token"
-        })
-
-        return false;
-    }
+function authJwt() {
+    const secret = process.env.TOKEN_SECRET;
+    const api = process.env.API_URL;
+    return expressJwt({
+        secret,
+        algorithms: ['HS256'],
+        isRevoked: isRevoked
+    }).unless({
+        path: [
+            { url: /\/public\/uploads(.*)/, methods: ['GET', 'OPTIONS'] },
+            { url: /\/api\/v1\/products(.*)/, methods: ['GET', 'OPTIONS'] },
+            { url: /\/api\/v1\/categories(.*)/, methods: ['GET', 'OPTIONS'] },
+            { url: /\/api\/v1\/orders(.*)/, methods: ['OPTIONS', 'POST'] },
+            `${api}/users/login`,
+            `${api}/users/register`
+        ]
+    });
 }
 
-module.exports = checkAuthHeader;
+async function isRevoked(req, payload, done) {
+    if (!payload.isAdmin) {
+        done(null, true);
+    }
 
+    done();
+}
+
+module.exports = authJwt;
 

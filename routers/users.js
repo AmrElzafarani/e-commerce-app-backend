@@ -10,14 +10,23 @@ const vAdmin = require("../middlewares/admin");
 
 //Get All Users
 router.get('/', async (req, res) => {
-    const userList = await User.find().select('-passwordHash');
-
-    if (!userList) {
-        res.status((400).json({
-            success: false
-        }))
-    }
-    res.send(userList);
+   try {
+       const {page = 1, limit = 10} = req.query;
+       const userList = await User.find().select('-passwordHash')
+           .limit(limit * 1)
+           .skip((page -1) * limit)
+       if (!userList) {
+           res.status((400).json({
+               success: false
+           }))
+       }
+       res.send({total: userList.length, userList});
+   } catch (error) {
+       res.status(400).json({
+           success: false,
+           message: error
+       })
+   }
 });
 
 //Create new user
@@ -36,18 +45,23 @@ router.post('/create-user', async (req, res) => {
             country: req.body.country,
         })
 
-        if (!user) {
-            return res.status(400).json({
-                success: false,
-                message: "can't create user"
-            })
-        } else {
-            const createdUser = await user.save();
-            return res.send(createdUser);
+        const existUser = await User.findOne({email: req.body.email})
+        if(existUser) {
+            return res.status(400).json(
+                {
+                    success: false,
+                    message: "Email is Exist"
+                }
+            )
         }
-    } catch (err) {
-        return res.status(400).send("error");
 
+        const createdUser = await user.save();
+        return res.send(createdUser);
+    } catch (err) {
+        return res.status(400).json({
+            success: false,
+            message: "the user cannot be created!"
+        });
     }
 });
 

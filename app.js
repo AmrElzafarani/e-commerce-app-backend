@@ -17,12 +17,14 @@ const productsRouter = require('./routers/products');
 const usersRouter = require('./routers/users');
 const categoriesRouter = require('./routers/categories');
 const ordersRouter = require('./routers/orders');
+const authJwt = require("./middlewares/auth");
 
 
 //Middleware
 app.use(cors(corsOption));
 app.use(express.json());
 app.use(morgan('tiny'));
+app.use(authJwt());
 app.use('/public/uploads', express.static(__dirname + '/public/uploads'))
 
 //Routers
