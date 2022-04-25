@@ -3,9 +3,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require("jsonwebtoken");
-const checkAuthHeader = require("../middlewares/auth");
-const verifyAdmin = require("../middlewares/admin");
-const vAdmin = require("../middlewares/admin");
+
 
 
 //Get All Users
