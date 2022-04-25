@@ -9,7 +9,7 @@ require("dotenv/config");
 const api = process.env.API_URL;
 
 const corsOption = {
-    optionsSuccessStatus: 200 // for some lagacy browsers
+    optionsSuccessStatus: 200
 };
 
 
@@ -24,7 +24,7 @@ const authJwt = require("./middlewares/auth");
 app.use(cors(corsOption));
 app.use(express.json());
 app.use(morgan('tiny'));
-app.use();
+app.use(authJwt());
 app.use('/public/uploads', express.static(__dirname + '/public/uploads'))
 
 //Routers
