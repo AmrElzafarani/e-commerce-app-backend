@@ -55,9 +55,10 @@ const productSchema = mongoose.Schema({
         default: Date.now
     },
 
-    colors: [{
+    productColors: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Color',
+        ref: 'ProductColor',
+        required:true
     }]
 
 })

@@ -60,7 +60,6 @@ router.post('/', async (req, res) => {
     }))
 
     const orderItemsIdsResolved = await orderItemsIds;
-    console.log(` orders : ${orderItemsIdsResolved}`)
 
     //Calculate totalPrice of order
     const totalPrices = await Promise.all(orderItemsIdsResolved.map(async (orderItemId) => {

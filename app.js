@@ -35,17 +35,20 @@ app.use(`${api}/orders`, ordersRouter);
 
 
 
-mongoose.connect(process.env.CONNECTION_STRING, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    dbName: process.env.DB_NAME
-})
+//Database
+mongoose
+    .connect(process.env.CONNECTION_STRING,
+        {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            dbName: process.env.DB_NAME,
+        })
     .then(() => {
-        console.log("database connected");
+        console.log("Database Connection is ready...");
     })
     .catch((err) => {
         console.log(err);
-    })
+    });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

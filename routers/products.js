@@ -1,6 +1,10 @@
-const {Product} = require('../models/product');
 const express = require('express');
+const {Product} = require('../models/product');
 const {Category} = require("../models/category");
+const {ProductColor} = require("../models/product-color");
+
+
+
 const router = express.Router();
 const multer = require('multer');
 const mongoose = require("mongoose");
@@ -42,20 +46,19 @@ router.get('/', async (req, res) => {
         }
         const productList = await Product.find(filterProductsByCat)
             .populate('category')
-
-
+            .populate('productColors')
         res.send(productList);
     } catch (err) {
-        res.status(400).send(err)
+        res.status(400).json(err)
     }
-
-
 })
 
 //Get product by ID
 router.get("/:id", async (req, res) => {
     try {
-        const productId = await Product.findById(req.params.id).populate('category');
+        const productId = await Product.findById(req.params.id)
+            .populate('category')
+            .populate('productColors');
         res.send(productId);
     } catch (err) {
         return res.status(404).json({
@@ -69,6 +72,25 @@ router.get("/:id", async (req, res) => {
 //Create product
 router.post('/create-product',uploadOptions.single('image'), async (req, res) => {
 
+    const productColorsIds = Promise.all(req.body.productColors.map(async productColor => {
+        let newProductColor = new ProductColor({
+            colorName: productColor.colorName,
+            quantity: productColor.quantity
+        })
+        newProductColor = await newProductColor.save();
+        return newProductColor._id;
+    }))
+    const productColorIsResolved = await productColorsIds;
+
+    const totalQuantities = await Promise.all(productColorIsResolved.map(async (productColorId) => {
+        const productColor = await ProductColor.findById(productColorId);
+        const totalQuantity = productColor.quantity;
+        return totalQuantity
+    }))
+
+    const totalQuantity = totalQuantities.reduce((a,b) => a +b , 0);
+
+
     try {
         const category = await Category.findById(req.body.category);
         if (!category) {
@@ -76,27 +98,29 @@ router.post('/create-product',uploadOptions.single('image'), async (req, res) =>
         }
 
         const file = req.file;
-        if(!file) {
-            return res.status(400).json({
-                success: false,
-                message: "Please upload image"
-            })
-        }
-        const fileName = file.filename;
-        const basePath = `${req.protocol}://${req.get('host')}/public/uploads/`;
+        // if(!file) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: "Please upload image"
+        //     })
+        // }
+        // const fileName = file.filename;
+        // const basePath = `${req.protocol}://${req.get('host')}/public/uploads/`;
 
         const product = new Product({
             name: req.body.name,
-            image: `${basePath}${fileName}`,
+            // image: `${basePath}${fileName}`,
             description: req.body.description,
             richDescription: req.body.richDescription,
             brand: req.body.brand,
             price: req.body.price,
             category: req.body.category,
-            countInStock: req.body.countInStock,
+            countInStock: totalQuantity,
             rating: req.body.rating,
             numReviews: req.body.numReviews,
             isFeatured: req.body.isFeatured,
+            productColors: productColorIsResolved,
+
 
         })
         if (!product) return res.status(400).json({
