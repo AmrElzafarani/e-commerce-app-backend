@@ -36,7 +36,6 @@ const productSchema = mongoose.Schema({
         type: Number,
         required: true,
         min: 0,
-        max: 255
     },
     rating: {
         type: Number,
@@ -55,11 +54,11 @@ const productSchema = mongoose.Schema({
         default: Date.now
     },
 
-    productColors: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'ProductColor',
-        required:true
-    }]
+    // productColors: [{
+    //     type: mongoose.Schema.Types.ObjectId,
+    //     ref: 'ProductColor',
+    //     required:true
+    // }]
 
 })
 
