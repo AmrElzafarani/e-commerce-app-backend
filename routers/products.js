@@ -53,7 +53,6 @@ router.get("/:id", async (req, res) => {
   try {
     const productId = await Product.findById(req.params.id)
       .populate("category")
-      .populate("productColors");
     res.send(productId);
   } catch (err) {
     return res.status(404).json({
