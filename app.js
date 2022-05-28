@@ -7,7 +7,7 @@ const authJwt = require("./middlewares/auth");
 
 require("dotenv/config");
 
-const api = process.env.API_URL;
+// const api = process.env.API_URL;
 
 const corsOption = {
     optionsSuccessStatus: 200
@@ -28,10 +28,10 @@ app.use(morgan('tiny'));
 app.use('/public/uploads', express.static(__dirname + '/public/uploads'))
 
 //Routers
-app.use(`${api}/products`, productsRouter);
-app.use(`${api}/users`, usersRouter);
-app.use(`${api}/categories`, categoriesRouter);
-app.use(`${api}/orders`, ordersRouter);
+app.use(`/products`, productsRouter);
+app.use(`/users`, usersRouter);
+app.use(`/categories`, categoriesRouter);
+app.use(`/orders`, ordersRouter);
 
 
 
@@ -52,6 +52,5 @@ mongoose
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(api);
     console.log("server running")
 })
