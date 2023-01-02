@@ -17,12 +17,12 @@ const productSchema = mongoose.Schema({
         type:String,
         default: ''
     },
-    images: [{
-        type:String,
-    }],
+    // images: [{
+    //     type:String,
+    // }],
     brand: {
-        type: String,
-        default:''
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Brand'
     },
     price: {
         type: Number,
@@ -31,6 +31,14 @@ const productSchema = mongoose.Schema({
     category: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Category'
+    },
+    material: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Material'
+    },
+    supplier: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Supplier'
     },
     countInStock: {
         type: Number,

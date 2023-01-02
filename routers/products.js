@@ -1,7 +1,9 @@
 const express = require("express");
 const { Product } = require("../models/product");
 const { Category } = require("../models/category");
-const { ProductColor } = require("../models/product-color");
+const { Material } = require("../models/material");
+const { Brand } = require("../models/brand");
+const { Supplier } = require("../models/supplier");
 
 const router = express.Router();
 const multer = require("multer");
@@ -32,19 +34,50 @@ const storage = multer.diskStorage({
 const uploadOptions = multer({ storage: storage });
 
 //Get all products and products by categoryId
-// localhost:3000/api/v1/products?categories=category-id
+// localhost:3000/products?categories=category-id
 
 router.get("/", async (req, res) => {
-  let filterProductsByCat = {};
+  // let filterProductsByCat = {};
+  // let filteredByBrand = {};
+  // const query = {};
+
   try {
+    const pageSize = +req.query.pagesize;
+    const currentPage = +req.query.page;
+
+    let categoriesId = {};
+    let brandsId = {};
+
     if (req.query.categories) {
-      filterProductsByCat = { category: req.query.categories.split(",") };
+      categoriesId = { category: req.query.categories.split(",") };
     }
-    const productList = await Product.find(filterProductsByCat)
+
+    if (req.query.brands) {
+      brandsId = { brand: req.query.brands.split(",") };
+    }
+
+    const productList = await Product.find({
+      $and: [brandsId, categoriesId],
+    })
       .populate("category")
-    res.send(productList);
+      .populate("material")
+      .populate("brand")
+      .populate("supplier")
+      .skip(pageSize * (currentPage - 1))
+      .limit(pageSize);
+    const productsCount = await Product.find({
+      $and: [brandsId, categoriesId],
+    }).count();
+    return res.json({
+      success: true,
+      message: productList,
+      total: productsCount,
+    });
   } catch (err) {
-    res.status(400).json(err);
+    res.status(400).json({
+      success: false,
+      message: err,
+    });
   }
 });
 
@@ -53,8 +86,11 @@ router.get("/:id", async (req, res) => {
   try {
     const productId = await Product.findById(req.params.id)
       .populate("category")
+      .populate("material")
+      .populate("brand")
+      .populate("supplier");
     res.send(productId);
-  } catch (err) {
+  } catch {
     return res.status(404).json({
       success: false,
       message: "product-id is incorrect",
@@ -67,67 +103,79 @@ router.post(
   "/create-product",
   uploadOptions.single("image"),
   async (req, res) => {
-    // const productColorsIds = Promise.all(
-    //   req.body.productColors.map(async (productColor) => {
-    //     let newProductColor = new ProductColor({
-    //       colorName: productColor.colorName,
-    //       quantity: productColor.quantity,
-    //     });
-    //     newProductColor = await newProductColor.save();
-    //     return newProductColor._id;
-    //   })
-    // );
-    // const productColorIsResolved = await productColorsIds;
-
-    // const totalQuantities = await Promise.all(
-    //   productColorIsResolved.map(async (productColorId) => {
-    //     const productColor = await ProductColor.findById(productColorId);
-    //     const totalQuantity = productColor.quantity;
-    //     return totalQuantity;
-    //   })
-    // );
-
-    // const totalQuantity = totalQuantities.reduce((a, b) => a + b, 0);
-
     try {
       const category = await Category.findById(req.body.category);
       if (!category) {
-        return res.status(404).send("Invalid Category");
+        return res.status(400).json({
+          success: false,
+          message: "Invalid Category",
+        });
+      }
+
+      const material = await Material.findById(req.body.material);
+      if (!material) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid Material",
+        });
+      }
+
+      const brand = await Brand.findById(req.body.brand);
+      if (!brand) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid Brand",
+        });
+      }
+
+      const supplier = await Supplier.findById(req.body.supplier);
+      if (!supplier) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid upplier",
+        });
       }
 
       const file = req.file;
+      const fileName = file.filename;
+      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+
       if (!file) {
         return res.status(400).json({
           success: false,
           message: "Please upload image",
         });
       }
-      const fileName = file.filename;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
-      const product = new Product({
+      const newProduct = new Product({
         name: req.body.name,
         image: `${basePath}${fileName}`,
         description: req.body.description,
         richDescription: req.body.richDescription,
-        brand: req.body.brand,
         price: req.body.price,
-        category: req.body.category,
-        countInStock: req.body.countInStock,
-        rating: req.body.rating,
-        numReviews: req.body.numReviews,
         isFeatured: req.body.isFeatured,
+        countInStock: req.body.countInStock,
+        category: req.body.category,
+        brand: req.body.brand,
+        supplier: req.body.supplier,
+        material: req.body.material,
       });
-      if (!product)
+      if (!newProduct)
         return res.status(400).json({
           success: false,
-          message: "can't create product",
+          message: "Some fields are missing",
         });
-      const createdProduct = await product.save();
+      const createdProduct = await newProduct.save();
 
-      return res.send(createdProduct);
-    } catch (error) {
-      return res.status(400).send(error);
+      return res.json({
+        success: true,
+        message: createdProduct,
+      });
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        message: err,
+      });
     }
   }
 );
@@ -135,12 +183,12 @@ router.post(
 //Update product by ID
 router.put("/:id", uploadOptions.single("image"), async (req, res) => {
   try {
-    const category = await Category.findById(req.body.category);
-    if (!category)
-      return res.status(400).send({
-        success: false,
-        message: "Invalid Category",
-      });
+    // const category = await Category.findById(req.body.category);
+    // if (!category)
+    //   return res.status(400).send({
+    //     success: false,
+    //     message: "Invalid Category",
+    //   });
 
     const product = await Product.findById(req.params.id);
     if (!product)
@@ -242,12 +290,17 @@ router.put(
           message: "Invalid Product",
         });
       const files = req.files;
+      console.log(`files: ${files}`);
+
       let imagesPaths = product.images;
       const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
       if (files) {
         files.map((file) => {
+          console.log("FileName" + file.filename);
+
           imagesPaths.push(`${basePath}${file.filename}`);
+          console.log(`path: ${imagesPaths}`);
         });
       }
       const images = await Product.findByIdAndUpdate(
@@ -259,7 +312,7 @@ router.put(
       );
       res.send(images);
     } catch (err) {
-      res.status(500).json({
+      res.status(400).json({
         success: false,
         message: err,
       });
@@ -279,5 +332,21 @@ router.get("/get/featured/:count", async (req, res) => {
     });
   }
 });
+
+//Search By Product Name
+router.post("/searchByProductName", async (req, res) => {
+  const name = req.body.name;
+  let search = await Product.find({
+    name: {
+      $regex: new RegExp("^" + name + ".*", "i"),
+    },
+  }).exec();
+  res.json({
+    success: true,
+    message: search,
+  });
+});
+
+//Two params ProductName, Category
 
 module.exports = router;

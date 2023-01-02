@@ -10,18 +10,23 @@ const router = express.Router();
 //Get All orders
 router.get("/", async (req, res) => {
   try {
-    const ordersList = await Order.find().populate("user", "name");
-
-    if (!ordersList) {
-      res.status(400).json({
-        success: false,
-        message: "Can't get orders",
-      });
-    }
-
-    res.send(ordersList);
+    const pageSize = +req.query.pagesize;
+    const currentPage = +req.query.page;
+    const ordersList = await Order.find()
+      .populate("user", "name")
+      .skip(pageSize * (currentPage - 1))
+      .limit(pageSize);
+    const ordersCount = await Order.count();
+    res.json({
+      success: true,
+      message: ordersList,
+      total: ordersCount,
+    });
   } catch (err) {
-    res.status(400).send("err");
+    res.status(400).json({
+      success: false,
+      message: err,
+    });
   }
 });
 
@@ -79,6 +84,7 @@ router.post("/", async (req, res) => {
   );
   const totalPrice = totalPrices.reduce((a, b) => a + b, 0);
   console.log(totalPrice);
+  console.log(totalPrices);
 
   try {
     const order = new Order({
@@ -207,6 +213,22 @@ router.get("/get/totalSales", async (req, res) => {
   });
 });
 
+//get TotalPrice of all orders
+router.get("/get/totalSaless/", async (req, res) => {
+  const totalSales = await Order.aggregate([
+    {
+      $group: {
+        _id: null,
+        totalsales: { $sum: "$totalPrice" },
+      },
+    },
+  ]);
+  console.log(totalSales);
+  res.send({
+    totalsales: totalSales.pop().totalsales,
+  });
+});
+
 //get count for all orders
 router.get("/get/count", async (req, res) => {
   try {
@@ -219,26 +241,54 @@ router.get("/get/count", async (req, res) => {
   }
 });
 
-// get user orders
-router.get("/get/userorders/:userid", async (req, res) => {
+//orders count per month
+router.get("/get/countss", async (req, res) => {
   try {
-    const userOrdersList = await Order.find({
-      user: req.params.userid,
-    })
-      .populate({
-        path: "orderItems",
-        populate: {
-          path: "product",
-          populate: "category",
-        },
-      })
-      .sort({ dateOrdered: -1 });
+    // if(req.query.month) {
+    //   // console.log(req.query.month)
+    //   const orderCount = await Order.aggregate([
+    //     {$addFields: { "month" : {$month: "$dateOrdered"}}},
+    //     {$match: { month: req.query.month }}
+    //   ])
+    //   console.log(orderCount)
+     
+    // }
 
-    res.send(userOrdersList);
+    const orderCount = await Order.aggregate([
+      {$addFields: { "month" : {$month: "$dateOrdered"}}},
+      {$match: { month: 12 }}
+    ])
+    console.log(orderCount)
+    
+  } catch (err) {
+
+  }
+})
+
+router.get("/get/user/orders", async (req, res) => {
+  try {
+    if (req.query.user) {
+      const userId = { user: req.query.user };
+      console.log(userId);
+      const userOrdersList = await Order.find(userId);
+
+      const sale = [];
+      userOrdersList.map((q) => {
+        sale.push(q.totalPrice);
+       
+      });
+      const total = sale.reduce((a, b) => a + b, 0);
+
+
+      res.json({
+        success: true,
+        message: userOrdersList,
+        totalPrice: total
+      });
+    }
   } catch (err) {
     res.status(400).json({
       success: false,
-      message: err,
     });
   }
 });
